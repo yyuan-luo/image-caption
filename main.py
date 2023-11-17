@@ -1,5 +1,5 @@
 import yaml
-import matplotlib.pyplot as plt
+from models.encoder import Encoder
 import torchvision.transforms as transforms
 from data.FlickrDataLoader import get_loader
 
@@ -13,14 +13,15 @@ batch_size = (int(config['training']['batch_size']))
 image_transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 if __name__ == '__main__':
     loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size)
-    idx = 0
-    print(dataset.vocabulary.stoi)
+    encoder = Encoder()
+    encoder.eval()
     for (imgs, captions) in loader:
         print(imgs.shape)
         print(captions.shape)
+        print(encoder(imgs).shape)
         break
