@@ -63,6 +63,8 @@ if __name__ == '__main__':
             loss = criterion(output, captions)
             params = list(encoder.embedding.parameters()) + list(decoder.parameters())
             optimizer = torch.optim.Adam(params, lr)
+            loss.backward()
+            optimizer.step()
             L = loss.item()
             if i_step % log_interval:
                 stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
@@ -76,6 +78,7 @@ if __name__ == '__main__':
     encoder.eval()
     decoder.eval()
     print("\ntesting:")
+    total_steps = math.ceil(int(dataset.__len__() * 0.2) / batch_size)
     for i_step, (imgs, captions, _) in enumerate(test_loader):
         imgs = imgs.to(device)
         captions = captions.to(device)
@@ -89,6 +92,7 @@ if __name__ == '__main__':
         # Print training statistics (on same line).
         print('\r' + stats, end="")
         sys.stdout.flush()
+    print()
 
 
         # test_input = imgs[0].unsqueeze(0)
