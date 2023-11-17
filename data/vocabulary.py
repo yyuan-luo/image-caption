@@ -27,7 +27,7 @@ class Vocabulary:
                 else:
                     frequency_dict[token] += 1
                 if frequency_dict[token] == self.frequency_threshold:  # "==" so that the token won't be duplicated
-                    self.stoi[token] = token_idx    # more efficient encoding scheme?
+                    self.stoi[token] = token_idx
                     self.itos[token_idx] = token
                     token_idx += 1
 
