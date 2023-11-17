@@ -18,6 +18,9 @@ batch_size = (int(config['training']['batch_size']))
 lr = float(config['training']['learning_rate'])
 num_epochs = int(config['training']['num_epochs'])
 use_gpu = bool(config['other']['use_gpu'] == "true")
+log_interval = int(config['other']['log_interval'])
+log_dir = config['results']['log_dir']
+checkpoint_dir = config['results']['checkpoint_dir']
 
 device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
 
@@ -28,6 +31,10 @@ image_transform = transforms.Compose([
 ])
 
 if __name__ == '__main__':
+    if use_gpu and torch.cuda.is_available():
+        print("cuda in use")
+    elif use_gpu and (not torch.cuda.is_available()):
+        print("Cuda not available, cpu in use")
     train_loader, test_loader, data_loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size)
     embedding_size = 300
     vocabulary_size = dataset.vocabulary.__len__()
@@ -56,8 +63,12 @@ if __name__ == '__main__':
             params = list(encoder.embedding.parameters()) + list(decoder.parameters())
             optimizer = torch.optim.Adam(params, lr)
             L = loss.item()
-            stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
-                epoch, num_epochs, i_step, total_steps, L, np.exp(L))
+            if i_step % log_interval:
+                stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
+                    epoch, num_epochs, i_step, total_steps, L, np.exp(L))
+                torch.save(encoder.state_dict(), checkpoint_dir + "encoder.pth")
+                torch.save(decoder.state_dict(), checkpoint_dir + "decoder.pth")
+                torch.save(optimizer.state_dict(), checkpoint_dir + "optimizer.pth")
 
             # Print training statistics (on same line).
             print('\r' + stats, end="")
