@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 import yaml
@@ -17,7 +18,7 @@ caption_path = config['data']['caption_file']
 batch_size = (int(config['training']['batch_size']))
 lr = float(config['training']['learning_rate'])
 num_epochs = int(config['training']['num_epochs'])
-use_gpu = bool(config['other']['use_gpu'] == "true")
+use_gpu = config['other']['use_gpu']
 log_interval = int(config['other']['log_interval'])
 log_dir = config['results']['log_dir']
 checkpoint_dir = config['results']['checkpoint_dir']
@@ -35,11 +36,14 @@ if __name__ == '__main__':
         print("cuda in use")
     elif use_gpu and (not torch.cuda.is_available()):
         print("Cuda not available, cpu in use")
+    else:
+        print("cpu in use")
+
     train_loader, test_loader, data_loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size)
     embedding_size = 300
     vocabulary_size = dataset.vocabulary.__len__()
-    encoder = Encoder(embedding_size)
-    decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size)
+    encoder = Encoder(embedding_size).to(device)
+    decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, device=device).to(device)
     criterion = nn.CrossEntropyLoss()
     total_steps = math.ceil(int(dataset.__len__() * 0.8) / batch_size)
 
@@ -55,24 +59,21 @@ if __name__ == '__main__':
             captions = captions.to(device)
             img_features = encoder(imgs)
             mask = (captions > vocabulary_size)
-            print()
-            print(mask.nonzero())
+            # print()
+            # print(mask.nonzero())
             output = decoder(img_features, captions)
             captions = torch.reshape(captions, (-1,))
-            loss = criterion(output, captions)
+            loss = criterion(output - 1, captions - 1)
             params = list(encoder.embedding.parameters()) + list(decoder.parameters())
             optimizer = torch.optim.Adam(params, lr)
             L = loss.item()
             if i_step % log_interval:
                 stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
                     epoch, num_epochs, i_step, total_steps, L, np.exp(L))
-                torch.save(encoder.state_dict(), checkpoint_dir + "encoder.pth")
-                torch.save(decoder.state_dict(), checkpoint_dir + "decoder.pth")
-                torch.save(optimizer.state_dict(), checkpoint_dir + "optimizer.pth")
-
-            # Print training statistics (on same line).
-            print('\r' + stats, end="")
-            sys.stdout.flush()
+                print('\r' + stats, end="")
+                sys.stdout.flush()
+        torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, "encoder-%d.pth" % epoch))
+        torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, "decoder-%d.pth" % epoch))
 
     # testing
     encoder.eval()
