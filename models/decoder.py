@@ -3,15 +3,15 @@ import torch.nn as nn
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocabulary_size, embedding_size, output_size, hidden_dim=12, num_layers=1):
+    def __init__(self, vocabulary_size, embedding_size, output_size, hidden_dim=512, num_layers=1):
         super(Decoder, self).__init__()
-        self.num_embeddings = vocabulary_size
+        self.vocabulary_size = vocabulary_size
         self.embedding_size = embedding_size
         self.output_size = output_size
         self.num_layers = num_layers
         self.hidden_dim = hidden_dim
         self.rnn = nn.RNN(self.embedding_size, self.hidden_dim, self.num_layers, batch_first=True)
-        self.embedding = nn.Embedding(self.num_embeddings, self.embedding_size)
+        self.embedding = nn.Embedding(self.vocabulary_size, self.embedding_size)
         self.fc = nn.Linear(self.hidden_dim, self.output_size)
 
     def forward(self, image_features, captions):
@@ -28,7 +28,7 @@ class Decoder(nn.Module):
         print(out.shape)
         out = self.fc(out)
 
-        return out
+        return out.contiguous().view(batch_size, seq_len, -1)
 
     def init_hidden(self, batch_size):
         hidden = torch.zeros(self.num_layers, batch_size, self.hidden_dim)
