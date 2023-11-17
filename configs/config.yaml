@@ -5,7 +5,7 @@ model:
 
 # Training settings
 training:
-  batch_size: 32             # Mini-batch size
+  batch_size: 48             # Mini-batch size
   learning_rate: 1           # Learning rate
   num_epochs: 10             # Number of training epochs
 
@@ -16,8 +16,8 @@ data:
 
 # Paths for saving results
 results:
-  log_dir: '/results/logs'         # Directory for training logs
-  checkpoint_dir: '/results/checkpoints'  # Directory for model checkpoints
+  log_dir: 'results/logs'         # Directory for training logs
+  checkpoint_dir: 'results/checkpoints'  # Directory for model checkpoints
 
 # Other settings
 other:
