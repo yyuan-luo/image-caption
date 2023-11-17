@@ -32,5 +32,6 @@ if __name__ == '__main__':
         count += 1
         image_features = encoder(batch[0][0])
         print(image_features.shape)
+        print(batch[0][1])
         if count == 1:
             break

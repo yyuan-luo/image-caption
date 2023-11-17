@@ -1,22 +1,21 @@
-import torch
 import os
-import nltk
 from os import walk
 from PIL import Image
 from torch.utils.data import Dataset
+from transformers import BertTokenizer
 
 
 def load_captions(path):
     f = open(path, "r")
     f.readline()
     captions = {}
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     for line in f:
         image, caption = line.split(",", 1)
         caption = caption.replace('"', '')
-        caption_tokens = nltk.word_tokenize(caption)
-        caption_tokens.insert(0, '[SOS]')
-        caption_tokens.append('[EOS]')
-        captions[image] = caption_tokens
+        caption_tokens = tokenizer.tokenize(caption)
+        caption_tokens = tokenizer.convert_tokens_to_ids(caption_tokens)
+        captions[image] = tokenizer.build_inputs_with_special_tokens(caption_tokens)
     f.close()
     return captions
 
