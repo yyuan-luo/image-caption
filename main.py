@@ -19,14 +19,16 @@ image_transform = transforms.Compose([
 
 if __name__ == '__main__':
     loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size)
-    encoder = Encoder()
-    decoder = Decoder(dataset.vocabulary.__len__(), 300, 10)
+    feature_size = 300
+    encoder = Encoder(feature_size)
+    decoder = Decoder(dataset.vocabulary.__len__(), feature_size, dataset.vocabulary.__len__())
     encoder.eval()
     decoder.eval()
     for (imgs, captions, seq_len) in loader:
-        print(imgs.shape)
-        print(captions.shape)
-        print(seq_len)
-        print(encoder(imgs).shape)
-        print(decoder(captions))
+        print("images:", imgs.shape)
+        print("captions:", captions.shape)
+        img_features = encoder(imgs)
+        print("image features:", img_features.shape)
+        output = decoder(img_features, captions)
+        print("output:", output.shape)
         break
