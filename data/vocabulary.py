@@ -6,8 +6,8 @@ en_tokenizer = spacy.load("en_core_web_sm")
 class Vocabulary:
     def __init__(self, frequency_threshold):
         # padding, start of sentence, end of sentence, unknown token
-        self.stoi = {'[PAD]': 1, '[SOS]': 2, '[EOS]': 3, '[UNK]': 4}
-        self.itos = {1: '[PAD]', 2: '[SOS]', 3: '[EOS]', 4: '[UNK]'}
+        self.stoi = {'[PAD]': 0, '[SOS]': 1, '[EOS]': 2, '[UNK]': 3}
+        self.itos = {0: '[PAD]', 1: '[SOS]', 2: '[EOS]', 3: '[UNK]'}
         self.frequency_threshold = frequency_threshold
 
     def __len__(self):
@@ -19,7 +19,7 @@ class Vocabulary:
 
     def build_vocabulary(self, sentences):
         frequency_dict = {}
-        token_idx = self.__len__() + 1
+        token_idx = self.__len__()
         for sentence in sentences:
             for token in self.tokenize_sentence(self, sentence):
                 if token not in frequency_dict:
