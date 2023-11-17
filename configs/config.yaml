@@ -6,8 +6,8 @@ model:
 # Training settings
 training:
   batch_size: 48             # Mini-batch size
-  learning_rate: 1           # Learning rate
-  num_epochs: 10             # Number of training epochs
+  learning_rate: 0.05           # Learning rate
+  num_epochs: 1             # Number of training epochs
 
 # Data paths
 data:
