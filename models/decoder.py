@@ -17,14 +17,11 @@ class Decoder(nn.Module):
     def forward(self, image_features, captions):
         batch_size = captions.shape[0]
         hidden_0 = self.init_hidden(batch_size)
-        captions = captions[:, :-1]
+        captions = captions[:, :-1]     # TODO: this might be wrong, the goal is to remove '[EOS]' token
         embedding_captions = self.embedding(captions)
-        print(image_features.unsqueeze(1).shape, embedding_captions.shape)
         embedding_captions = torch.cat((image_features.unsqueeze(1), embedding_captions), 1)    # Pre-inject
         out, hidden = self.rnn(embedding_captions, hidden_0)
-        print(out.shape)
         out = out.contiguous().view(-1, self.hidden_dim)
-        print(out.shape)
         out = self.fc(out)
 
         return out
@@ -32,3 +29,14 @@ class Decoder(nn.Module):
     def init_hidden(self, batch_size):
         hidden = torch.zeros(self.num_layers, batch_size, self.hidden_dim)
         return hidden
+
+    def sampler(self, image_features, states=None, max_len=20):
+        sent_out = []
+        input = image_features
+        for i in range(max_len):
+            out, _ = self.rnn(input, states)
+            out = self.fc(out.contiguous().view(-1, self.hidden_dim))
+            best = out.max(1)[1]    # tensor.out => (value, index)
+            sent_out.append(best.item())
+            input = self.embedding(best).unsqueeze(1)
+        return sent_out
