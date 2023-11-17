@@ -35,19 +35,17 @@ image_transform = transforms.Compose([
 if __name__ == '__main__':
     args = sys.argv
     is_training = True
-    if len(args) < 2:
-        print("training mode")
-    elif len(args) == 2:
-        if args[1] == 'training':
-            print("training mode")
-        elif args[1] == 'evaluating':
-            is_training = False
-            print("evaluating mode")
-        else:
-            print('wrong mode given (training / evaluating)')
-            sys.exit()
-    else:
-        print("wrong args given")
+    training_starting_file = 0
+    evaluating_checkpoint_file = 1
+    if args[1] == 'training':
+        print("training mode, starting from 0 unless specified")
+        if (len(args) == 3):
+            training_starting_file = int(args[2])
+    elif args[1] == 'evaluating':
+        is_training = False
+        print("evaluating mode, default checkpoint files: encoder/decoder-1.pth unless specified")
+        if len(args) == 3:
+            evaluating_checkpoint_file = int(args[2])
      
     if use_gpu and torch.cuda.is_available():
         print("cuda in use")
@@ -60,17 +58,21 @@ if __name__ == '__main__':
     embedding_size = 300
     vocabulary_size = dataset.vocabulary.__len__()
     encoder = Encoder(embedding_size).to(device)
-    decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, device=device).to(device)
+    decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, hidden_dim=embedding_size, device=device).to(device)
     criterion = nn.CrossEntropyLoss()
     total_steps = math.floor(int(dataset.__len__() * 0.8) / batch_size)
 
     if is_training:
         # training
         print("training:")
+        if (len(args) == 3):
+            encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-{training_starting_file}.pth')))
+            decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-{training_starting_file}.pth')))
         encoder.train()
         decoder.train()
+        train_loss_epoch = []
         train_loss = []
-        for epoch in range(num_epochs):
+        for epoch in range(num_epochs - training_starting_file):
             for i_step, (imgs, captions, _) in enumerate(train_loader):
                 encoder.zero_grad()
                 decoder.zero_grad()
@@ -88,11 +90,13 @@ if __name__ == '__main__':
                 if i_step % log_interval:
                     train_loss.append(L)
                     stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
-                        epoch, num_epochs, i_step, total_steps, L, np.exp(L))
+                        (epoch + 1 + training_starting_file), num_epochs, i_step, total_steps, L, np.exp(L))
                     print('\r' + stats, end="")
                     sys.stdout.flush()
-            torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, "encoder-%d.pth" % epoch))
-            torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, "decoder-%d.pth" % epoch))
+            torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, f"encoder-{epoch + 1 + training_starting_file}.pth"))
+            torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, f"decoder-{epoch + 1 + training_starting_file}.pth"))
+            train_loss_epoch.append(train_loss)
+            train_loss = []
 
         # testing
         encoder.eval()
@@ -113,10 +117,11 @@ if __name__ == '__main__':
             print('\r' + stats, end="")
             sys.stdout.flush()
         print()
-        plot_loss(train_loss, test_loss, log_dir)
+        plot_loss(train_loss_epoch[-1], test_loss, log_dir)
     else:
-        encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'encoder-0.pth')))
-        decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'decoder-0.pth')))
+        print(f'Loading encoder-{evaluating_checkpoint_file}.pth and decoder-{evaluating_checkpoint_file}.pth')
+        encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-{evaluating_checkpoint_file}.pth')))
+        decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-{evaluating_checkpoint_file}.pth')))
         encoder.eval()
         decoder.eval()
         for i_step, (imgs, captions, _) in enumerate(data_loader):
@@ -127,4 +132,6 @@ if __name__ == '__main__':
             print(words_indices)
             for word_index in words_indices:
                 words.append(dataset.vocabulary.itos[word_index])
-            plot_test(words, index, i_step, images_path, caption_path, log_dir)
+            plot_test(words[1:], index, i_step, images_path, caption_path, log_dir)
+            if i_step == 10:
+                break

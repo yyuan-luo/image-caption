@@ -32,13 +32,14 @@ class Decoder(nn.Module):
         hidden = torch.zeros(self.num_layers, batch_size, self.hidden_dim)
         return hidden
 
-    def sampler(self, image_features, states=None, max_len=20):
+    def sampler(self, image_features, states=None, max_len=15):
         sent_out = []
         input = image_features
+        input = input.unsqueeze(0)
         for i in range(max_len):
             out, _ = self.rnn(input, states)
+            input = out
             out = self.fc(out.contiguous().view(-1, self.hidden_dim))
             best = out.max(1)[1]    # tensor.out => (value, index)
             sent_out.append(best.item())
-            input = self.embedding(best).unsqueeze(1)
         return sent_out
