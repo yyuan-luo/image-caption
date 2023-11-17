@@ -117,6 +117,8 @@ if __name__ == '__main__':
     else:
         encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'encoder-0.pth')))
         decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'decoder-0.pth')))
+        encoder.eval()
+        decoder.eval()
         for i_step, (imgs, captions, _) in enumerate(data_loader):
             index = i_step * batch_size
             test_input = imgs[0].to(device).unsqueeze(0)
