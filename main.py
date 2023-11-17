@@ -37,5 +37,13 @@ if __name__ == '__main__':
         print("output:", output.shape)
         captions = torch.reshape(captions, (-1,))
         print("caption reshape:", captions)
-        print("Loss", criterion(output, captions))
+        # print("Loss", criterion(output, captions))
+        test_input = imgs[0].unsqueeze(0)
+        print("test_input:", test_input.shape)
+        words_indices = decoder.sampler(encoder(test_input))
+        print(words_indices)
+        words = []
+        for word_index in words_indices:
+            words.append(dataset.vocabulary.itos[word_index])
+        print(words)
         break
