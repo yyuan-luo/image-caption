@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
+from utils.plot import plot_loss
 from models.encoder import Encoder
 from models.decoder import Decoder
 from data.FlickrDataLoader import get_loader
@@ -45,12 +46,13 @@ if __name__ == '__main__':
     encoder = Encoder(embedding_size).to(device)
     decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, device=device).to(device)
     criterion = nn.CrossEntropyLoss()
-    total_steps = math.ceil(int(dataset.__len__() * 0.8) / batch_size)
+    total_steps = math.floor(int(dataset.__len__() * 0.8) / batch_size)
 
     # training
     print("training:")
     encoder.train()
     decoder.train()
+    train_loss = []
     for epoch in range(num_epochs):
         for i_step, (imgs, captions, _) in enumerate(train_loader):
             encoder.zero_grad()
@@ -67,6 +69,7 @@ if __name__ == '__main__':
             optimizer.step()
             L = loss.item()
             if i_step % log_interval:
+                train_loss.append(L)
                 stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
                     epoch, num_epochs, i_step, total_steps, L, np.exp(L))
                 print('\r' + stats, end="")
@@ -78,7 +81,8 @@ if __name__ == '__main__':
     encoder.eval()
     decoder.eval()
     print("\ntesting:")
-    total_steps = math.ceil(int(dataset.__len__() * 0.2) / batch_size)
+    test_loss = []
+    total_steps = math.floor(int(dataset.__len__() * 0.2) / batch_size)
     for i_step, (imgs, captions, _) in enumerate(test_loader):
         imgs = imgs.to(device)
         captions = captions.to(device)
@@ -87,12 +91,12 @@ if __name__ == '__main__':
         captions = torch.reshape(captions, (-1,))
         loss = criterion(output, captions)
         L = loss.item()
+        test_loss.append(L)
         stats = 'Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (i_step, total_steps, L, np.exp(L))
-
-        # Print training statistics (on same line).
         print('\r' + stats, end="")
         sys.stdout.flush()
     print()
+    plot_loss(train_loss, test_loss, log_dir)
 
 
         # test_input = imgs[0].unsqueeze(0)
