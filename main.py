@@ -20,8 +20,9 @@ if __name__ == '__main__':
     loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size)
     encoder = Encoder()
     encoder.eval()
-    for (imgs, captions) in loader:
+    for (imgs, captions, seq_len) in loader:
         print(imgs.shape)
         print(captions.shape)
+        print(seq_len)
         print(encoder(imgs).shape)
         break
