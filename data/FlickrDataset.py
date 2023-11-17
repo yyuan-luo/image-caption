@@ -5,6 +5,10 @@ from PIL import Image
 from torch.utils.data import Dataset
 from data.vocabulary import Vocabulary
 
+'''
+Work highly relies on https://www.kaggle.com/code/fanbyprinciple/learning-pytorch-8-working-with-caption-dataset
+'''
+
 
 class FlickrDataset(Dataset):
     def __init__(self, image_dir, annotation_file, transform=None, frequency_threshold=5):
