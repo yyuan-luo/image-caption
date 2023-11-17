@@ -22,3 +22,4 @@ results:
 # Other settings
 other:
   use_gpu: true              # Whether to use GPU for training (true or false)
+  log_interval: 10           # save the training every <log_interval> batch(s)
