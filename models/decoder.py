@@ -3,9 +3,9 @@ import torch.nn as nn
 
 
 class Decoder(nn.Module):
-    def __init__(self, embedding_size, feature_size, output_size, hidden_dim=12, num_layers=1):
+    def __init__(self, vocabulary_size, feature_size, output_size, hidden_dim=12, num_layers=1):
         super(Decoder, self).__init__()
-        self.num_embeddings = embedding_size
+        self.num_embeddings = vocabulary_size
         self.feature_size = feature_size
         self.output_size = output_size
         self.num_layers = num_layers
@@ -14,16 +14,21 @@ class Decoder(nn.Module):
         self.embedding = nn.Embedding(self.num_embeddings, self.feature_size)
         self.fc = nn.Linear(self.hidden_dim, self.output_size)
 
-    def forward(self, captions):
+    def forward(self, image_features, captions):
         batch_size = captions.shape[0]
-        hidden_0 = self.init_hidden(batch_size)  # TODO: replace this with image features from encoder
-
+        seq_len = captions.shape[1]
+        hidden_0 = self.init_hidden(batch_size)
+        captions = captions[:, :-1]
         embedding_captions = self.embedding(captions)
+        print(image_features.unsqueeze(1).shape, embedding_captions.shape)
+        embedding_captions = torch.cat((image_features.unsqueeze(1), embedding_captions), 1)    # Pre-inject
         out, hidden = self.rnn(embedding_captions, hidden_0)
+        print(out.shape)
         out = out.contiguous().view(-1, self.hidden_dim)
+        print(out.shape)
         out = self.fc(out)
 
-        return out, hidden
+        return out.contiguous().view(batch_size, seq_len, -1)
 
     def init_hidden(self, batch_size):
         hidden = torch.zeros(self.num_layers, batch_size, self.hidden_dim)
