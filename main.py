@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
-from utils.plot import plot_loss
+from utils.plot import plot_loss, plot_test
 from models.encoder import Encoder
 from models.decoder import Decoder
 from data.FlickrDataLoader import get_loader
@@ -33,10 +33,23 @@ image_transform = transforms.Compose([
 ])
 
 if __name__ == '__main__':
+    args = sys.argv
+    if len(args) < 2:
+        print("training mode")
+    is_training = True
+    if args[1] == 'training':
+        print("training mode")
+    elif args[1] == 'evaluating':
+        is_training = False
+        print("evaluating")
+    else:
+        print('wrong mode given')
+        sys.exit()
+     
     if use_gpu and torch.cuda.is_available():
         print("cuda in use")
     elif use_gpu and (not torch.cuda.is_available()):
-        print("Cuda not available, cpu in use")
+        print("cuda not available, cpu in use")
     else:
         print("cpu in use")
 
@@ -48,61 +61,65 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     total_steps = math.floor(int(dataset.__len__() * 0.8) / batch_size)
 
-    # training
-    print("training:")
-    encoder.train()
-    decoder.train()
-    train_loss = []
-    for epoch in range(num_epochs):
-        for i_step, (imgs, captions, _) in enumerate(train_loader):
-            encoder.zero_grad()
-            decoder.zero_grad()
+    if is_training:
+        # training
+        print("training:")
+        encoder.train()
+        decoder.train()
+        train_loss = []
+        for epoch in range(num_epochs):
+            for i_step, (imgs, captions, _) in enumerate(train_loader):
+                encoder.zero_grad()
+                decoder.zero_grad()
+                imgs = imgs.to(device)
+                captions = captions.to(device)
+                img_features = encoder(imgs)
+                output = decoder(img_features, captions)
+                captions = torch.reshape(captions, (-1,))
+                loss = criterion(output, captions)
+                params = list(encoder.embedding.parameters()) + list(decoder.parameters())
+                optimizer = torch.optim.Adam(params, lr)
+                loss.backward()
+                optimizer.step()
+                L = loss.item()
+                if i_step % log_interval:
+                    train_loss.append(L)
+                    stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
+                        epoch, num_epochs, i_step, total_steps, L, np.exp(L))
+                    print('\r' + stats, end="")
+                    sys.stdout.flush()
+            torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, "encoder-%d.pth" % epoch))
+            torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, "decoder-%d.pth" % epoch))
+
+        # testing
+        encoder.eval()
+        decoder.eval()
+        print("\ntesting:")
+        test_loss = []
+        total_steps = math.floor(int(dataset.__len__() * 0.2) / batch_size)
+        for i_step, (imgs, captions, _) in enumerate(test_loader):
             imgs = imgs.to(device)
             captions = captions.to(device)
             img_features = encoder(imgs)
             output = decoder(img_features, captions)
             captions = torch.reshape(captions, (-1,))
             loss = criterion(output, captions)
-            params = list(encoder.embedding.parameters()) + list(decoder.parameters())
-            optimizer = torch.optim.Adam(params, lr)
-            loss.backward()
-            optimizer.step()
             L = loss.item()
-            if i_step % log_interval:
-                train_loss.append(L)
-                stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
-                    epoch, num_epochs, i_step, total_steps, L, np.exp(L))
-                print('\r' + stats, end="")
-                sys.stdout.flush()
-        torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, "encoder-%d.pth" % epoch))
-        torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, "decoder-%d.pth" % epoch))
-
-    # testing
-    encoder.eval()
-    decoder.eval()
-    print("\ntesting:")
-    test_loss = []
-    total_steps = math.floor(int(dataset.__len__() * 0.2) / batch_size)
-    for i_step, (imgs, captions, _) in enumerate(test_loader):
-        imgs = imgs.to(device)
-        captions = captions.to(device)
-        img_features = encoder(imgs)
-        output = decoder(img_features, captions)
-        captions = torch.reshape(captions, (-1,))
-        loss = criterion(output, captions)
-        L = loss.item()
-        test_loss.append(L)
-        stats = 'Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (i_step, total_steps, L, np.exp(L))
-        print('\r' + stats, end="")
-        sys.stdout.flush()
-    print()
-    plot_loss(train_loss, test_loss, log_dir)
-
-
-        # test_input = imgs[0].unsqueeze(0)
-        # words_indices = decoder.sampler(encoder(test_input))
-        # print(words_indices)
-        # words = []
-        # for word_index in words_indices:
-        #     words.append(dataset.vocabulary.itos[word_index])
-        # print(words)
+            test_loss.append(L)
+            stats = 'Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (i_step, total_steps, L, np.exp(L))
+            print('\r' + stats, end="")
+            sys.stdout.flush()
+        print()
+        plot_loss(train_loss, test_loss, log_dir)
+    else:
+        encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'encoder-0.pth')))
+        decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'decoder-0.pth')))
+        # have a look at the results
+        for i_step, (imgs, captions, _) in enumerate(data_loader):
+            index = i_step * batch_size
+            test_input = imgs[0].to(device).unsqueeze(0)
+            words_indices = decoder.sampler(encoder(test_input))
+            words = []
+            for word_index in words_indices:
+                words.append(dataset.vocabulary.itos[word_index])
+            plot_test(words, index, i_step, images_path, caption_path, log_dir)
