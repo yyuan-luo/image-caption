@@ -16,7 +16,6 @@ class Decoder(nn.Module):
 
     def forward(self, image_features, captions):
         batch_size = captions.shape[0]
-        seq_len = captions.shape[1]
         hidden_0 = self.init_hidden(batch_size)
         captions = captions[:, :-1]
         embedding_captions = self.embedding(captions)
@@ -28,7 +27,7 @@ class Decoder(nn.Module):
         print(out.shape)
         out = self.fc(out)
 
-        return out.contiguous().view(batch_size, seq_len, -1)
+        return out
 
     def init_hidden(self, batch_size):
         hidden = torch.zeros(self.num_layers, batch_size, self.hidden_dim)

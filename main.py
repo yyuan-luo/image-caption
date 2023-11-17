@@ -1,4 +1,6 @@
+import torch
 import yaml
+import torch.nn as nn
 import torchvision.transforms as transforms
 from models.encoder import Encoder
 from models.decoder import Decoder
@@ -23,6 +25,7 @@ if __name__ == '__main__':
     vocabulary_size = dataset.vocabulary.__len__()
     encoder = Encoder(embedding_size)
     decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size)
+    criterion = nn.CrossEntropyLoss()
     encoder.eval()
     decoder.eval()
     for (imgs, captions, seq_len) in loader:
@@ -32,4 +35,7 @@ if __name__ == '__main__':
         print("image features:", img_features.shape)
         output = decoder(img_features, captions)
         print("output:", output.shape)
+        captions = torch.reshape(captions, (-1,))
+        print("caption reshape:", captions)
+        print("Loss", criterion(output, captions))
         break
