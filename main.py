@@ -2,6 +2,7 @@ from data.dataSet import ImageCaptionDataset
 import torchvision.transforms as transforms
 from utils.padding import DynamicPadding
 from torch.utils.data import DataLoader
+from models.encoder import Encoder
 import yaml
 
 with open('./configs/config.yaml', 'r') as config_file:
@@ -24,5 +25,12 @@ if __name__ == '__main__':
     batch_size = 32
     data_loader = DataLoader(dataset, batch_size, shuffle=True, collate_fn=lambda x: x)
 
+    encoder = Encoder()
+    encoder.eval()
+    count = 0
     for batch in data_loader:
-        print(batch[0])
+        count += 1
+        image_features = encoder(batch[0][0])
+        print(image_features.shape)
+        if count == 1:
+            break
