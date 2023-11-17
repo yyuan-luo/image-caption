@@ -26,7 +26,7 @@ def plot_test(words:[], index, step:int, image_path, caption_path:str, log_dir:s
    img_dir = os.path.join(image_path, df['image'][index])
    img = mpimg.imread(img_dir)
    plt.imshow(img)
-   plt.title(''.join(word for word in words))
+   plt.title(' '.join(word for word in words))
    plt.savefig(f'{log_dir}/{step}.png')
    plt.close()
    
