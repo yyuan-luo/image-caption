@@ -1,0 +1,25 @@
+# Model hyper-parameters
+model:
+  encoder_type: 'resnet50'   # Type of image encoder (e.g., 'resnet50', 'vgg16')
+  decoder_type: 'lstm'       # Type of text decoder (e.g., 'lstm', 'transformer')
+
+# Training settings
+training:
+  target_size: 500    # Size of input images
+  batch_size: 64             # Mini-batch size
+  learning_rate: 0.001       # Learning rate
+  num_epochs: 10             # Number of training epochs
+
+# Data paths
+data:
+  image_dir: 'data/flickr8k/images'  # Directory containing image data
+  caption_file: 'data/flickr8k/captions.txt'  # txt file with image captions
+
+# Paths for saving results
+results:
+  log_dir: 'results/logs/'         # Directory for training logs
+  checkpoint_dir: 'results/checkpoints/'  # Directory for model checkpoints
+
+# Other settings
+other:
+  use_gpu: true              # Whether to use GPU for training (true or false)
