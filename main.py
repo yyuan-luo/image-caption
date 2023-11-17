@@ -19,9 +19,9 @@ image_transform = transforms.Compose([
 
 if __name__ == '__main__':
     loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size)
-    feature_size = 300
-    encoder = Encoder(feature_size)
-    decoder = Decoder(dataset.vocabulary.__len__(), feature_size, dataset.vocabulary.__len__())
+    embedding_size = 300
+    encoder = Encoder(embedding_size)
+    decoder = Decoder(dataset.vocabulary.__len__(), embedding_size, dataset.vocabulary.__len__())
     encoder.eval()
     decoder.eval()
     for (imgs, captions, seq_len) in loader:
