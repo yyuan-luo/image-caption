@@ -17,6 +17,9 @@ caption_path = config['data']['caption_file']
 batch_size = (int(config['training']['batch_size']))
 lr = float(config['training']['learning_rate'])
 num_epochs = int(config['training']['num_epochs'])
+use_gpu = bool(config['other']['use_gpu'] == "true")
+
+device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
 
 image_transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -41,6 +44,8 @@ if __name__ == '__main__':
         for i_step, (imgs, captions, _) in enumerate(train_loader):
             encoder.zero_grad()
             decoder.zero_grad()
+            imgs = imgs.to(device)
+            captions = captions.to(device)
             img_features = encoder(imgs)
             mask = (captions > vocabulary_size)
             print()
@@ -63,13 +68,14 @@ if __name__ == '__main__':
     decoder.eval()
     print("\ntesting:")
     for i_step, (imgs, captions, _) in enumerate(test_loader):
+        imgs = imgs.to(device)
+        captions = captions.to(device)
         img_features = encoder(imgs)
         output = decoder(img_features, captions)
         captions = torch.reshape(captions, (-1,))
         loss = criterion(output, captions)
         L = loss.item()
-        stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
-            epoch, num_epochs, i_step, total_steps, L, np.exp(L))
+        stats = 'Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (i_step, total_steps, L, np.exp(L))
 
         # Print training statistics (on same line).
         print('\r' + stats, end="")
