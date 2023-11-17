@@ -114,17 +114,6 @@ if __name__ == '__main__':
             sys.stdout.flush()
         print()
         plot_loss(train_loss, test_loss, log_dir)
-        
-        # have a look at the results
-        for i_step, (imgs, captions, _) in enumerate(data_loader):
-            index = i_step * batch_size
-            test_input = imgs[0].to(device).unsqueeze(0)
-            words_indices = decoder.sampler(encoder(test_input))
-            words = []
-            print(words_indices)
-            for word_index in words_indices:
-                words.append(dataset.vocabulary.itos[word_index])
-            plot_test(words, index, i_step, images_path, caption_path, log_dir)
     else:
         encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'encoder-0.pth')))
         decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'decoder-0.pth')))
