@@ -72,6 +72,8 @@ if __name__ == '__main__':
         decoder.train()
         train_loss_epoch = []
         train_loss = []
+        params = list(encoder.embedding.parameters()) + list(decoder.parameters())
+        optimizer = torch.optim.Adam(params, lr)
         for epoch in range(num_epochs - training_starting_file):
             for i_step, (imgs, captions, _) in enumerate(train_loader):
                 encoder.zero_grad()
@@ -82,8 +84,6 @@ if __name__ == '__main__':
                 output = decoder(img_features, captions)
                 captions = torch.reshape(captions, (-1,))
                 loss = criterion(output, captions)
-                params = list(encoder.embedding.parameters()) + list(decoder.parameters())
-                optimizer = torch.optim.Adam(params, lr)
                 loss.backward()
                 optimizer.step()
                 L = loss.item()
@@ -124,14 +124,15 @@ if __name__ == '__main__':
         decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-{evaluating_checkpoint_file}.pth')))
         encoder.eval()
         decoder.eval()
+        image_index_in_batch = 0
         for i_step, (imgs, captions, _) in enumerate(data_loader):
             index = i_step * batch_size
-            test_input = imgs[0].to(device).unsqueeze(0)
+            test_input = imgs[image_index_in_batch].to(device).unsqueeze(0)
             words_indices = decoder.sampler(encoder(test_input))
             words = []
             print(words_indices)
             for word_index in words_indices:
                 words.append(dataset.vocabulary.itos[word_index])
-            plot_test(words[1:], index, i_step, images_path, caption_path, log_dir)
+            plot_test(words[1:], index + image_index_in_batch, i_step, images_path, caption_path, log_dir)
             if i_step == 10:
                 break
