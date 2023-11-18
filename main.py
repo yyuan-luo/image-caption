@@ -80,13 +80,15 @@ if __name__ == '__main__':
         params = list(encoder.embedding.parameters()) + list(decoder.parameters())
         optimizer = torch.optim.Adam(params, lr)
         for epoch in range(num_epochs - training_starting_file):
-            for i_step, (imgs, captions, _) in enumerate(train_loader):
+            for i_step, (imgs, captions, seq_lens) in enumerate(train_loader):
                 encoder.zero_grad()
                 decoder.zero_grad()
                 imgs = imgs.to(device)
                 captions = captions.to(device)
                 img_features = encoder(imgs)
-                output = decoder(img_features, captions)
+                # seq_lens = [seq_len + 1 for seq_len in seq_lens] TODO: How to correctly handle the pre-injected image features
+                seq_lens = torch.tensor(seq_lens).to(device)
+                output = decoder(img_features, captions, seq_lens)
                 captions = torch.reshape(captions, (-1,))
                 loss = criterion(output, captions)
                 loss.backward()
@@ -109,11 +111,12 @@ if __name__ == '__main__':
         print("\ntesting:")
         test_loss = []
         total_steps = math.floor(int(dataset.__len__() * (1 - training_percentage)) / batch_size)
-        for i_step, (imgs, captions, _) in enumerate(test_loader):
+        for i_step, (imgs, captions, seq_lens) in enumerate(test_loader):
             imgs = imgs.to(device)
             captions = captions.to(device)
+            seq_lens = torch.tensor(seq_lens).to(device)
             img_features = encoder(imgs)
-            output = decoder(img_features, captions)
+            output = decoder(img_features, captions, seq_lens)
             captions = torch.reshape(captions, (-1,))
             loss = criterion(output, captions)
             L = loss.item()

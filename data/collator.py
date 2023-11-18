@@ -16,4 +16,4 @@ class MyCollate:
             seq_lens.append(len(item[1]))
         targets = pad_sequence(targets, False, self.pad_idx)  # padding in which dimension?
         targets = torch.transpose(targets, 0, 1)
-        return imgs, targets, torch.tensor(seq_lens)
+        return imgs, targets, seq_lens

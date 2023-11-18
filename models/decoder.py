@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class Decoder(nn.Module):
@@ -15,14 +16,20 @@ class Decoder(nn.Module):
         self.embedding = nn.Embedding(self.vocabulary_size, self.embedding_size)
         self.fc = nn.Linear(self.hidden_dim, self.output_size)
 
-    def forward(self, image_features, captions):
+    def forward(self, image_features, captions, seq_lens):
         batch_size = captions.shape[0]
         hidden_0 = self.init_hidden(batch_size)
         hidden_0 = hidden_0.to(self.device)
         captions = captions[:, :-1]     # TODO: this might be wrong, the goal is to remove '[EOS]' token
+        sorted_lens, sorted_indices = seq_lens.sort(descending=True)
         embedding_captions = self.embedding(captions)
-        embedding_captions = torch.cat((image_features.unsqueeze(1), embedding_captions), 1)    # Pre-inject
-        out, hidden = self.rnn(embedding_captions, hidden_0)
+        embedding_captions = torch.cat((image_features.unsqueeze(1), embedding_captions), 1)    # Pre-inject'
+        sorted_embedding_captions = embedding_captions[sorted_indices]
+        packed_input = pack_padded_sequence(sorted_embedding_captions, sorted_lens.cpu().numpy(), batch_first=True)
+        packed_out, hidden = self.rnn(packed_input, hidden_0)
+        out, _ = pad_packed_sequence(packed_out, batch_first=True)
+        _, original_indices = sorted_indices.sort()
+        out = out[original_indices]
         out = out.contiguous().view(-1, self.hidden_dim)
         out = self.fc(out)
 
