@@ -16,7 +16,8 @@ with open('./configs/config.yaml', 'r') as config_file:
 
 images_path = config['data']['image_dir']
 caption_path = config['data']['caption_file']
-batch_size = (int(config['training']['batch_size']))
+training_percentage = float(config['training']['training_percentage'])
+batch_size = int(config['training']['batch_size'])
 lr = float(config['training']['learning_rate'])
 num_epochs = int(config['training']['num_epochs'])
 use_gpu = config['other']['use_gpu']
@@ -57,18 +58,19 @@ if __name__ == '__main__':
     else:
         print("cpu in use")
 
-    train_loader, test_loader, data_loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size)
+    train_loader, test_loader, data_loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size, training_percentage)
     embedding_size = 300
     vocabulary_size = dataset.vocabulary.__len__()
     encoder = Encoder(embedding_size).to(device)
     decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, hidden_dim=embedding_size, device=device).to(device)
     criterion = nn.CrossEntropyLoss()
-    total_steps = math.floor(int(dataset.__len__() * 0.8) / batch_size)
+    total_steps = math.floor(int(dataset.__len__() * training_percentage) / batch_size)
 
     if is_training:
         # training
         print("training:")
         if (len(args) == 3):
+            print(f'Loading encoder-{training_starting_file}.pth and decoder-{training_starting_file}.pth')
             encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-{training_starting_file}.pth')))
             decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-{training_starting_file}.pth')))
         encoder.train()
@@ -106,7 +108,7 @@ if __name__ == '__main__':
         decoder.eval()
         print("\ntesting:")
         test_loss = []
-        total_steps = math.floor(int(dataset.__len__() * 0.2) / batch_size)
+        total_steps = math.floor(int(dataset.__len__() * (1 - training_percentage)) / batch_size)
         for i_step, (imgs, captions, _) in enumerate(test_loader):
             imgs = imgs.to(device)
             captions = captions.to(device)

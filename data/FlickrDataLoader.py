@@ -1,14 +1,12 @@
-
 from data.collator import MyCollate
 from data.FlickrDataset import FlickrDataset
 from torch.utils.data import DataLoader, random_split
 
-
-def get_loader(image_dir, annotation_file, transform, batch_size=32, num_workers=4, shuffle=True, pin_memory=True):
+def get_loader(image_dir, annotation_file, transform, batch_size=32, training_percentage=0.8, num_workers=4, shuffle=True, pin_memory=True):
     dataset = FlickrDataset(image_dir, annotation_file, transform)
     pad_idx = dataset.vocabulary.stoi['[PAD]']
 
-    train_size = int(0.8 * dataset.__len__())
+    train_size = int(training_percentage * dataset.__len__())
     test_size = dataset.__len__() - train_size
     train_set, test_set = random_split(dataset, [train_size, test_size])
 
