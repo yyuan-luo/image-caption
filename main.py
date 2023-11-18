@@ -46,7 +46,10 @@ if __name__ == '__main__':
         print("evaluating mode, default checkpoint files: encoder/decoder-1.pth unless specified")
         if len(args) == 3:
             evaluating_checkpoint_file = int(args[2])
-     
+    else:
+        print("wrong mode assigned")
+        sys.exit()
+    
     if use_gpu and torch.cuda.is_available():
         print("cuda in use")
     elif use_gpu and (not torch.cuda.is_available()):
