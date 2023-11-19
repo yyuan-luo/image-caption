@@ -13,7 +13,7 @@ class Decoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.device = device
         self.rnn = nn.RNN(self.embedding_size, self.hidden_dim, self.num_layers, batch_first=True)
-        self.embedding = nn.Embedding(self.vocabulary_size, self.embedding_size)
+        self.embedding = nn.Embedding(self.vocabulary_size, self.embedding_size, 0)
         self.fc = nn.Linear(self.hidden_dim, self.output_size)
 
     def forward(self, image_features, captions, seq_lens):
