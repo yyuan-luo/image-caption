@@ -100,8 +100,9 @@ if __name__ == '__main__':
                         (epoch + 1 + training_starting_file), num_epochs, i_step, total_steps, L, np.exp(L))
                     print('\r' + stats, end="")
                     sys.stdout.flush()
-            torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, f"encoder-{epoch + 1 + training_starting_file}.pth"))
-            torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, f"decoder-{epoch + 1 + training_starting_file}.pth"))
+            if epoch % log_interval == 0:
+                torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, f"encoder-{epoch + 1 + training_starting_file}.pth"))
+                torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, f"decoder-{epoch + 1 + training_starting_file}.pth"))
             train_loss_epoch.append(train_loss)
             train_loss = []
 
