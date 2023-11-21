@@ -6,9 +6,10 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
-from utils.plot import plot_loss, plot_test
+from tqdm import tqdm
 from models.encoder import Encoder
 from models.decoder import Decoder
+from utils.plot import plot_loss, plot_test
 from data.FlickrDataLoader import get_loader
 
 with open('./configs/config.yaml', 'r') as config_file:
@@ -79,7 +80,10 @@ if __name__ == '__main__':
         train_loss = []
         params = list(encoder.embedding.parameters()) + list(decoder.parameters())
         optimizer = torch.optim.Adam(params, lr)
+        outer = tqdm(total=num_epochs - training_starting_file, desc="Epoch", position=0, leave=True)
+        train_log = tqdm(total=0, position=2, bar_format='{desc}', leave=False)
         for epoch in range(num_epochs - training_starting_file):
+            inner = tqdm(total=total_steps, desc="Batch", position=1, leave=False)
             for i_step, (imgs, captions, seq_lens) in enumerate(train_loader):
                 encoder.zero_grad()
                 decoder.zero_grad()
@@ -90,21 +94,23 @@ if __name__ == '__main__':
                 seq_lens = torch.tensor(seq_lens).to(device)
                 output = decoder(img_features, captions, seq_lens)
                 captions = torch.reshape(captions, (-1,))
-                loss = criterion(output, captions)
+                loss = criterion(output, captions)  # 是将output转化为2994 还是将captions进行embedding呢？
                 loss.backward()
                 optimizer.step()
                 L = loss.item()
+                stats = 'Loss: %.4f, Perplexity: %5.4f' % (L, np.exp(L))
+                train_log.set_description_str(stats)
                 if i_step % log_interval:
                     train_loss.append(L)
-                    stats = 'Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (
-                        (epoch + 1 + training_starting_file), num_epochs, i_step, total_steps, L, np.exp(L))
-                    print('\r' + stats, end="")
-                    sys.stdout.flush()
+                inner.update(1)
             if epoch % log_interval == 0:
                 torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, f"encoder-{epoch + 1 + training_starting_file}.pth"))
                 torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, f"decoder-{epoch + 1 + training_starting_file}.pth"))
             train_loss_epoch.append(train_loss)
             train_loss = []
+            inner.close()
+            outer.update(1)
+        outer.close()
 
         # testing
         encoder.eval()
@@ -112,6 +118,8 @@ if __name__ == '__main__':
         print("\ntesting:")
         test_loss = []
         total_steps = math.floor(int(dataset.__len__() * (1 - training_percentage)) / batch_size)
+        inner = tqdm(total=total_steps, desc="Batch", position=0, leave=True)
+        test_log = tqdm(total=0, position=1, bar_format='{desc}', leave=False)
         for i_step, (imgs, captions, seq_lens) in enumerate(test_loader):
             imgs = imgs.to(device)
             captions = captions.to(device)
@@ -122,10 +130,9 @@ if __name__ == '__main__':
             loss = criterion(output, captions)
             L = loss.item()
             test_loss.append(L)
-            stats = 'Step [%d/%d], Loss: %.4f, Perplexity: %5.4f' % (i_step, total_steps, L, np.exp(L))
-            print('\r' + stats, end="")
-            sys.stdout.flush()
-        print()
+            stats = 'Loss: %.4f, Perplexity: %5.4f' % (L, np.exp(L))
+            test_log.set_description_str(stats)
+            inner.update(1)
         plot_loss(train_loss_epoch[-1], test_loss, log_dir)
     else:
         print(f'Loading encoder-{evaluating_checkpoint_file}.pth and decoder-{evaluating_checkpoint_file}.pth')
