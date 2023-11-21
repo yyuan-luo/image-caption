@@ -3,6 +3,7 @@ import sys
 import math
 import yaml
 import torch
+import argparse
 import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
@@ -35,19 +36,22 @@ image_transform = transforms.Compose([
 ])
 
 if __name__ == '__main__':
-    args = sys.argv
+    parser = argparse.ArgumentParser(description="Image Caption with RNN")
+    parser.add_argument('-m', '--mode', help="choose to train or evaluate the model (training/evaluating)", required=True)
+    parser.add_argument('-l', '--load', help="select which checkpoint to load for continuting training or evaluating", required=False)
+    args = vars(parser.parse_args())
     is_training = True
     training_starting_file = 0
     evaluating_checkpoint_file = 1
-    if args[1] == 'training':
-        print("training mode, starting from 0 unless specified")
-        if (len(args) == 3):
-            training_starting_file = int(args[2])
-    elif args[1] == 'evaluating':
+    if args['mode'] == 'training':
+        print("training mode: training starts from ground unless checkpoint file specified")
+        if args['load']:
+            training_starting_file = int(args['load'])
+    elif args['mode'] == 'evaluating':
         is_training = False
-        print("evaluating mode, default checkpoint files: encoder/decoder-1.pth unless specified")
-        if len(args) == 3:
-            evaluating_checkpoint_file = int(args[2])
+        print("evaluating mode: default encoder/decoder-1.pth unless specified")
+        if args['load']:
+            evaluating_checkpoint_file = int(args['load'])
     else:
         print("wrong mode assigned")
         sys.exit()
