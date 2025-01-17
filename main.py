@@ -46,13 +46,8 @@ if __name__ == '__main__':
     evaluating_checkpoint_file = 1
     if args['mode'] == 'training':
         print("training mode: training starts from ground unless checkpoint file specified")
-        if args['load']:
-            training_starting_file = int(args['load'])
     elif args['mode'] == 'evaluating':
         is_training = False
-        print("evaluating mode: default encoder/decoder-1.pth unless specified")
-        if args['load']:
-            evaluating_checkpoint_file = int(args['load'])
     else:
         print("wrong mode assigned")
         sys.exit()
@@ -76,12 +71,7 @@ if __name__ == '__main__':
     total_steps = math.floor(int(dataset.__len__() * 0.6) / batch_size)
 
     if is_training:
-        # training
         print("training:")
-        if len(args) == 3:
-            print(f'Loading encoder-{training_starting_file}.pth and decoder-{training_starting_file}.pth')
-            encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-{training_starting_file}.pth')))
-            decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-{training_starting_file}.pth')))
         encoder.train()
         decoder.train()
         train_loss_epoch = []
@@ -90,6 +80,7 @@ if __name__ == '__main__':
         optimizer = torch.optim.Adam(params, lr)
         outer = tqdm(total=num_epochs - training_starting_file, desc="Epoch", position=0, leave=True)
         train_log = tqdm(total=0, position=2, bar_format='{desc}', leave=False)
+        val_best = 100
         for epoch in range(num_epochs - training_starting_file):
             inner = tqdm(total=total_steps, desc="Batch", position=1, leave=False)
             for i_step, (imgs, captions, seq_lens) in enumerate(train_loader):
@@ -98,11 +89,12 @@ if __name__ == '__main__':
                 imgs = imgs.to(device)
                 captions = captions.to(device)
                 img_features = encoder(imgs)
-                # seq_lens = [seq_len + 1 for seq_len in seq_lens] TODO: How to correctly handle the pre-injected image features
-                seq_lens = torch.tensor(seq_lens).to(device)
-                output = decoder(img_features, captions, seq_lens)
-                captions = torch.reshape(captions, (-1,))
-                loss = criterion(output, captions)  # 是将output转化为2994 还是将captions进行embedding呢？
+                # Account for pre-injected image features
+                seq_lens = torch.tensor([seq_len + 1 for seq_len in seq_lens]).to(device)
+                output = decoder(img_features, captions,seq_lens)
+                captions = captions.reshape(-1)
+                loss = criterion(output, captions)  # Compute loss
+
                 loss.backward()
                 optimizer.step()
                 L = loss.item()
@@ -111,16 +103,31 @@ if __name__ == '__main__':
                 if i_step % log_interval:
                     train_loss.append(L)
                 inner.update(1)
-            if epoch % log_interval == 0:
+            # validating
+            val_loss = []
+            for i_step, (imgs, captions, seq_lens) in enumerate(val_loader):
+                imgs = imgs.to(device)
+                captions = captions.to(device)
+                seq_lens = torch.tensor([seq_len + 1 for seq_len in seq_lens]).to(device)
+                img_features = encoder(imgs)
+                output = decoder(img_features, captions, seq_lens)
+                captions = torch.reshape(captions, (-1,))
+                loss = criterion(output, captions)
+                L = loss.item()
+                val_loss.append(L)
+            average_loss = sum(val_loss) / len(val_loss)
+            if average_loss < val_best == 0:
                 torch.save(encoder.state_dict(),
-                           os.path.join(checkpoint_dir, f"encoder-{epoch + 1 + training_starting_file}.pth"))
+                           os.path.join(checkpoint_dir, f"encoder-best.pth"))
                 torch.save(decoder.state_dict(),
-                           os.path.join(checkpoint_dir, f"decoder-{epoch + 1 + training_starting_file}.pth"))
+                           os.path.join(checkpoint_dir, f"decoder-best.pth"))
+                val_best = average_loss
             train_loss_epoch.append(train_loss)
             train_loss = []
             inner.close()
             outer.update(1)
         outer.close()
+
 
         # testing
         encoder.eval()
@@ -133,7 +140,7 @@ if __name__ == '__main__':
         for i_step, (imgs, captions, seq_lens) in enumerate(test_loader):
             imgs = imgs.to(device)
             captions = captions.to(device)
-            seq_lens = torch.tensor(seq_lens).to(device)
+            seq_lens = torch.tensor([seq_len + 1 for seq_len in seq_lens]).to(device)
             img_features = encoder(imgs)
             output = decoder(img_features, captions, seq_lens)
             captions = torch.reshape(captions, (-1,))
@@ -145,9 +152,9 @@ if __name__ == '__main__':
             inner.update(1)
         plot_loss(train_loss_epoch[-1], test_loss, log_dir)
     else:
-        print(f'Loading encoder-{evaluating_checkpoint_file}.pth and decoder-{evaluating_checkpoint_file}.pth')
-        encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-{evaluating_checkpoint_file}.pth')))
-        decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-{evaluating_checkpoint_file}.pth')))
+        print(f'Loading encoder-best.pth and decoder-best.pth')
+        encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-best.pth')))
+        decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-best.pth')))
         encoder.eval()
         decoder.eval()
         image_index_in_batch = 0
