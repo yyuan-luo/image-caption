@@ -115,7 +115,7 @@ if __name__ == '__main__':
                 L = loss.item()
                 val_loss.append(L)
             average_loss = sum(val_loss) / len(val_loss)
-            if average_loss < val_best == 0:
+            if average_loss < val_best:
                 torch.save(encoder.state_dict(),
                            os.path.join(checkpoint_dir, f"encoder-best.pth"))
                 torch.save(decoder.state_dict(),
