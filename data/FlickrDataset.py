@@ -1,13 +1,13 @@
+"""
+Work highly relies on https://www.kaggle.com/code/fanbyprinciple/learning-pytorch-8-working-with-caption-dataset
+"""
+
 import os
 import torch
 import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
 from data.vocabulary import Vocabulary
-
-'''
-Work highly relies on https://www.kaggle.com/code/fanbyprinciple/learning-pytorch-8-working-with-caption-dataset
-'''
 
 
 class FlickrDataset(Dataset):
@@ -27,7 +27,7 @@ class FlickrDataset(Dataset):
     def __getitem__(self, index):
         caption = self.captions[index]
         image_name = self.images[index]
-        image = Image.open(os.path.join(self.image_dir, image_name)).convert("RGB")     # PIL image B->G->R
+        image = Image.open(os.path.join(self.image_dir, image_name)).convert("RGB")  # PIL image B->G->R
 
         if self.transform:
             image = self.transform(image)

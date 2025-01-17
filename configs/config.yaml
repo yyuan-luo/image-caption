@@ -5,14 +5,13 @@ model:
 
 # Training settings
 training:
-  training_percentage: 0.9         # Percentage of training data 
-  batch_size: 54             # Mini-batch size
+  batch_size: 32             # Mini-batch size
   learning_rate: 0.01           # Learning rate
   num_epochs: 10             # Number of training epochs
 
 # Data paths
 data:
-  image_dir: 'data/flickr8k/images'  # Directory containing image data
+  image_dir: 'data/flickr8k/Images'  # Directory containing image data
   caption_file: 'data/flickr8k/captions.txt'  # txt file with image captions
 
 # Paths for saving results

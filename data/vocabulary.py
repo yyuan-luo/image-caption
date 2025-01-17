@@ -14,14 +14,18 @@ class Vocabulary:
         return len(self.stoi)
 
     @staticmethod
-    def tokenize_sentence(self, sentence):
+    def tokenize_sentence(sentence):
         return [token.text.lower() for token in en_tokenizer.tokenizer(sentence)]
 
+    """
+    Go through all sentences and collect any words appear 
+    more than the given frequency into the vocabulary dictionary
+    """
     def build_vocabulary(self, sentences):
         frequency_dict = {}
         token_idx = self.__len__()
         for sentence in sentences:
-            for token in self.tokenize_sentence(self, sentence):
+            for token in self.tokenize_sentence(sentence):
                 if token not in frequency_dict:
                     frequency_dict[token] = 1
                 else:
@@ -32,5 +36,5 @@ class Vocabulary:
                     token_idx += 1
 
     def numericalize(self, sentence):
-        tokens = self.tokenize_sentence(self, sentence)
+        tokens = self.tokenize_sentence(sentence)
         return [self.stoi[token] if token in self.stoi else self.stoi['[UNK]'] for token in tokens]

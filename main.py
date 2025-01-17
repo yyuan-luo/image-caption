@@ -18,7 +18,6 @@ with open('./configs/config.yaml', 'r') as config_file:
 
 images_path = config['data']['image_dir']
 caption_path = config['data']['caption_file']
-training_percentage = float(config['training']['training_percentage'])
 batch_size = int(config['training']['batch_size'])
 lr = float(config['training']['learning_rate'])
 num_epochs = int(config['training']['num_epochs'])
@@ -37,8 +36,10 @@ image_transform = transforms.Compose([
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Image Caption with RNN")
-    parser.add_argument('-m', '--mode', help="choose to train or evaluate the model (training/evaluating)", required=True)
-    parser.add_argument('-l', '--load', help="select which checkpoint to load for continuting training or evaluating", required=False)
+    parser.add_argument('-m', '--mode', help="choose to train or evaluate the model (training/evaluating)",
+                        required=True)
+    parser.add_argument('-l', '--load', help="select which checkpoint to load for continuing training or evaluating",
+                        required=False)
     args = vars(parser.parse_args())
     is_training = True
     training_starting_file = 0
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     else:
         print("wrong mode assigned")
         sys.exit()
-    
+
     if use_gpu and torch.cuda.is_available():
         print("cuda in use")
     elif use_gpu and (not torch.cuda.is_available()):
@@ -63,18 +64,21 @@ if __name__ == '__main__':
     else:
         print("cpu in use")
 
-    train_loader, test_loader, data_loader, dataset = get_loader(images_path, caption_path, image_transform, batch_size, training_percentage)
+    train_loader, val_loader, test_loader, data_loader, dataset = get_loader(images_path, caption_path, image_transform,
+                                                                             batch_size)
     embedding_size = 300
     vocabulary_size = dataset.vocabulary.__len__()
-    encoder = Encoder(embedding_size).to(device)
-    decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, hidden_dim=embedding_size, device=device).to(device)
+    encoder = Encoder(embedding_size)
+    decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, hidden_dim=embedding_size, device=device)
+    encoder = encoder.to(device)
+    decoder = decoder.to(device)
     criterion = nn.CrossEntropyLoss()
-    total_steps = math.floor(int(dataset.__len__() * training_percentage) / batch_size)
+    total_steps = math.floor(int(dataset.__len__() * 0.6) / batch_size)
 
     if is_training:
         # training
         print("training:")
-        if (len(args) == 3):
+        if len(args) == 3:
             print(f'Loading encoder-{training_starting_file}.pth and decoder-{training_starting_file}.pth')
             encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-{training_starting_file}.pth')))
             decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-{training_starting_file}.pth')))
@@ -108,8 +112,10 @@ if __name__ == '__main__':
                     train_loss.append(L)
                 inner.update(1)
             if epoch % log_interval == 0:
-                torch.save(encoder.state_dict(), os.path.join(checkpoint_dir, f"encoder-{epoch + 1 + training_starting_file}.pth"))
-                torch.save(decoder.state_dict(), os.path.join(checkpoint_dir, f"decoder-{epoch + 1 + training_starting_file}.pth"))
+                torch.save(encoder.state_dict(),
+                           os.path.join(checkpoint_dir, f"encoder-{epoch + 1 + training_starting_file}.pth"))
+                torch.save(decoder.state_dict(),
+                           os.path.join(checkpoint_dir, f"decoder-{epoch + 1 + training_starting_file}.pth"))
             train_loss_epoch.append(train_loss)
             train_loss = []
             inner.close()
@@ -121,7 +127,7 @@ if __name__ == '__main__':
         decoder.eval()
         print("\ntesting:")
         test_loss = []
-        total_steps = math.floor(int(dataset.__len__() * (1 - training_percentage)) / batch_size)
+        total_steps = math.floor(int(dataset.__len__() * 0.2) / batch_size)
         inner = tqdm(total=total_steps, desc="Batch", position=0, leave=True)
         test_log = tqdm(total=0, position=1, bar_format='{desc}', leave=False)
         for i_step, (imgs, captions, seq_lens) in enumerate(test_loader):
