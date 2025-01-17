@@ -89,9 +89,8 @@ if __name__ == '__main__':
                 imgs = imgs.to(device)
                 captions = captions.to(device)
                 img_features = encoder(imgs)
-                # Account for pre-injected image features
-                seq_lens = torch.tensor([seq_len + 1 for seq_len in seq_lens]).to(device)
-                output = decoder(img_features, captions,seq_lens)
+                seq_lens = torch.tensor(seq_lens).to(device)
+                output = decoder(img_features, captions, seq_lens)
                 captions = captions.reshape(-1)
                 loss = criterion(output, captions)  # Compute loss
 
@@ -108,7 +107,7 @@ if __name__ == '__main__':
             for i_step, (imgs, captions, seq_lens) in enumerate(val_loader):
                 imgs = imgs.to(device)
                 captions = captions.to(device)
-                seq_lens = torch.tensor([seq_len + 1 for seq_len in seq_lens]).to(device)
+                seq_lens = torch.tensor(seq_lens).to(device)
                 img_features = encoder(imgs)
                 output = decoder(img_features, captions, seq_lens)
                 captions = torch.reshape(captions, (-1,))
@@ -140,7 +139,7 @@ if __name__ == '__main__':
         for i_step, (imgs, captions, seq_lens) in enumerate(test_loader):
             imgs = imgs.to(device)
             captions = captions.to(device)
-            seq_lens = torch.tensor([seq_len + 1 for seq_len in seq_lens]).to(device)
+            seq_lens = torch.tensor(seq_lens).to(device)
             img_features = encoder(imgs)
             output = decoder(img_features, captions, seq_lens)
             captions = torch.reshape(captions, (-1,))
