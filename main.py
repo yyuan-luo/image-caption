@@ -67,7 +67,7 @@ if __name__ == '__main__':
     decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, hidden_dim=embedding_size, device=device)
     encoder = encoder.to(device)
     decoder = decoder.to(device)
-    criterion = nn.CrossEntropyLoss(ignore_index=0)  # ignore <PAD>
+    criterion = nn.CrossEntropyLoss(ignore_index=dataset.vocabulary.stoi['[PAD]'])  # ignore <PAD>
     total_steps = math.floor(int(dataset.__len__() * 0.6) / batch_size)
 
     if is_training:
