@@ -8,8 +8,7 @@ import numpy as np
 import torch.nn as nn
 import torchvision.transforms as transforms
 from tqdm import tqdm
-from models.encoder import Encoder
-from models.decoder import Decoder
+from models.res2rnn import Res2RNN
 from utils.plot import plot_loss, plot_test
 from data.FlickrDataLoader import get_loader
 
@@ -63,20 +62,17 @@ if __name__ == '__main__':
                                                                              batch_size)
     embedding_size = 256
     vocabulary_size = dataset.vocabulary.__len__()
-    encoder = Encoder(embedding_size)
-    decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, hidden_dim=embedding_size, device=device)
-    encoder = encoder.to(device)
-    decoder = decoder.to(device)
+    model = Res2RNN(vocabulary_size, embedding_size)
+    model = model.to(device)
     criterion = nn.CrossEntropyLoss(ignore_index=dataset.vocabulary.stoi['[PAD]'])  # ignore <PAD>
     total_steps = math.floor(int(dataset.__len__() * 0.6) / batch_size)
 
     if is_training:
         print("training:")
-        encoder.train()
-        decoder.train()
+        model.train()
         train_loss_epoch = []
         train_loss = []
-        params = list(encoder.embedding.parameters()) + list(decoder.parameters())
+        params = list(model.embedding.parameters())
         optimizer = torch.optim.Adam(params, lr)
         outer = tqdm(total=num_epochs - training_starting_file, desc="Epoch", position=0, leave=True)
         train_log = tqdm(total=0, position=2, bar_format='{desc}', leave=False)
@@ -84,15 +80,13 @@ if __name__ == '__main__':
         for epoch in range(num_epochs - training_starting_file):
             inner = tqdm(total=total_steps, desc="Batch", position=1, leave=False)
             for i_step, (imgs, captions, seq_lens) in enumerate(train_loader):
-                encoder.zero_grad()
-                decoder.zero_grad()
+                model.zero_grad()
                 imgs = imgs.to(device)
                 captions = captions.to(device)
-                img_features = encoder(imgs)
                 seq_lens = torch.tensor(seq_lens).to(device)
-                output = decoder(img_features, captions, seq_lens)
+                output = model(imgs, captions[:, :-1], seq_lens)
                 captions = captions.reshape(-1)
-                loss = criterion(output, captions)  # Compute loss
+                loss = criterion(torch.reshape(output, (-1, )), captions)  # Compute loss
 
                 loss.backward()
                 optimizer.step()
@@ -108,18 +102,15 @@ if __name__ == '__main__':
                 imgs = imgs.to(device)
                 captions = captions.to(device)
                 seq_lens = torch.tensor(seq_lens).to(device)
-                img_features = encoder(imgs)
-                output = decoder(img_features, captions, seq_lens)
+                output = model(imgs, captions, seq_lens)
                 captions = torch.reshape(captions, (-1,))
                 loss = criterion(output, captions)
                 L = loss.item()
                 val_loss.append(L)
             average_loss = sum(val_loss) / len(val_loss)
             if average_loss < val_best:
-                torch.save(encoder.state_dict(),
-                           os.path.join(checkpoint_dir, f"encoder-best.pth"))
-                torch.save(decoder.state_dict(),
-                           os.path.join(checkpoint_dir, f"decoder-best.pth"))
+                torch.save(model.state_dict(),
+                           os.path.join(checkpoint_dir, f"model-best.pth"))
                 val_best = average_loss
             train_loss_epoch.append(train_loss)
             train_loss = []
@@ -129,8 +120,7 @@ if __name__ == '__main__':
 
 
         # testing
-        encoder.eval()
-        decoder.eval()
+        model.eval()
         print("\ntesting:")
         test_loss = []
         total_steps = math.floor(int(dataset.__len__() * 0.2) / batch_size)
@@ -140,8 +130,7 @@ if __name__ == '__main__':
             imgs = imgs.to(device)
             captions = captions.to(device)
             seq_lens = torch.tensor(seq_lens).to(device)
-            img_features = encoder(imgs)
-            output = decoder(img_features, captions, seq_lens)
+            output = model(imgs, captions, seq_lens)
             captions = torch.reshape(captions, (-1,))
             loss = criterion(output, captions)
             L = loss.item()
@@ -151,16 +140,14 @@ if __name__ == '__main__':
             inner.update(1)
         plot_loss(train_loss_epoch[-1], test_loss, log_dir)
     else:
-        print(f'Loading encoder-best.pth and decoder-best.pth')
-        encoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'encoder-best.pth')))
-        decoder.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'decoder-best.pth')))
-        encoder.eval()
-        decoder.eval()
+        print(f'Loading model-best.pth')
+        model.load_state_dict(torch.load(os.path.join(checkpoint_dir, f'model-best.pth')))
+        model.eval()
         image_index_in_batch = 0
         for i_step, (imgs, captions, _) in enumerate(data_loader):
             index = i_step * batch_size
             test_input = imgs[image_index_in_batch].to(device).unsqueeze(0)
-            words_indices = decoder.sampler(encoder(test_input))
+            words_indices = model.decoder.sampler(model.encoder(test_input))
             words = []
             print(words_indices)
             for word_index in words_indices:
