@@ -27,5 +27,6 @@ class Encoder(nn.Module):
 
 if __name__ == '__main__':
     encoder = Encoder(300)
+    print(encoder)
     x = torch.randn(1, 3, 224, 224)
     print(encoder(x).shape)
