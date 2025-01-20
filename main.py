@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     train_loader, val_loader, test_loader, data_loader, dataset = get_loader(images_path, caption_path, image_transform,
                                                                              batch_size)
-    embedding_size = 300
+    embedding_size = 256
     vocabulary_size = dataset.vocabulary.__len__()
     encoder = Encoder(embedding_size)
     decoder = Decoder(vocabulary_size, embedding_size, vocabulary_size, hidden_dim=embedding_size, device=device)

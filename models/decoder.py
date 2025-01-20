@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocabulary_size, embedding_size, output_size, hidden_dim=512, num_layers=1):
+    def __init__(self, vocabulary_size, embedding_size, output_size, hidden_dim=256, num_layers=1):
         super(Decoder, self).__init__()
         self.vocabulary_size = vocabulary_size
         self.embedding_size = embedding_size
