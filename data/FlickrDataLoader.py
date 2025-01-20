@@ -1,4 +1,5 @@
 from data.collator import MyCollate
+import torchvision.transforms as transforms
 from data.FlickrDataset import FlickrDataset
 from torch.utils.data import DataLoader, random_split
 
@@ -45,3 +46,17 @@ def get_loader(image_dir, annotation_file, transform, batch_size=32, num_workers
     )
 
     return train_loader, val_loader, test_loader, data_loader, dataset
+
+
+if __name__ == '__main__':
+    image_transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    train_loader, _, test_loader, data_loader, dataset = get_loader('./flickr8k/Images', './flickr8k/captions.txt', image_transform, 4)
+    print(len(dataset.vocabulary.itos))
+    for imgs, captions, seq_lens in test_loader:
+        print(captions.shape, captions)
+        print([dataset.vocabulary.itos[caption] for caption in captions[0].detach().cpu().numpy()])
+        break
