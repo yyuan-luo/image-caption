@@ -34,7 +34,6 @@ class Decoder(nn.Module):
         _, original_indices = sorted_indices.sort()
         out = out[original_indices]
 
-        out = out.contiguous().view(-1, self.hidden_dim)
         out = self.fc(out)
 
         return out

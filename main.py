@@ -72,8 +72,7 @@ if __name__ == '__main__':
         model.train()
         train_loss_epoch = []
         train_loss = []
-        params = list(model.embedding.parameters())
-        optimizer = torch.optim.Adam(params, lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr)
         outer = tqdm(total=num_epochs - training_starting_file, desc="Epoch", position=0, leave=True)
         train_log = tqdm(total=0, position=2, bar_format='{desc}', leave=False)
         val_best = 100
@@ -84,10 +83,8 @@ if __name__ == '__main__':
                 imgs = imgs.to(device)
                 captions = captions.to(device)
                 seq_lens = torch.tensor(seq_lens).to(device)
-                output = model(imgs, captions[:, :-1], seq_lens)
-                captions = captions.reshape(-1)
-                loss = criterion(torch.reshape(output, (-1, )), captions)  # Compute loss
-
+                output = model(imgs, captions, seq_lens)
+                loss = criterion(output.view(-1, len(dataset.vocabulary)), captions.view(-1))  # Compute loss
                 loss.backward()
                 optimizer.step()
                 L = loss.item()
@@ -103,8 +100,7 @@ if __name__ == '__main__':
                 captions = captions.to(device)
                 seq_lens = torch.tensor(seq_lens).to(device)
                 output = model(imgs, captions, seq_lens)
-                captions = torch.reshape(captions, (-1,))
-                loss = criterion(output, captions)
+                loss = criterion(output.view(-1, len(dataset.vocabulary)), captions.view(-1))
                 L = loss.item()
                 val_loss.append(L)
             average_loss = sum(val_loss) / len(val_loss)
@@ -131,8 +127,7 @@ if __name__ == '__main__':
             captions = captions.to(device)
             seq_lens = torch.tensor(seq_lens).to(device)
             output = model(imgs, captions, seq_lens)
-            captions = torch.reshape(captions, (-1,))
-            loss = criterion(output, captions)
+            loss = criterion(output.view(-1, len(dataset.vocabulary)), captions.view(-1))
             L = loss.item()
             test_loss.append(L)
             stats = 'Loss: %.4f, Perplexity: %5.4f' % (L, np.exp(L))
