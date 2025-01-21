@@ -4,19 +4,20 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocabulary_size, embedding_size, hidden_dim=256, num_layers=1):
+    def __init__(self, vocabulary_size, embedding_size, hidden_dim=256, num_layers=1, device=torch.device("cpu")):
         super(Decoder, self).__init__()
         self.vocabulary_size = vocabulary_size
         self.embedding_size = embedding_size
         self.num_layers = num_layers
         self.hidden_dim = hidden_dim
+        self.device = device
         self.rnn = nn.RNN(self.embedding_size, self.hidden_dim, self.num_layers, batch_first=True)
         self.embedding = nn.Embedding(self.vocabulary_size, self.embedding_size,)
         self.fc = nn.Linear(self.hidden_dim, self.vocabulary_size)
 
     def forward(self, image_features, captions, seq_lens):
         batch_size = captions.shape[0]
-        hidden_0 = self.init_hidden(batch_size)
+        hidden_0 = self.init_hidden(batch_size).to(self.device)
 
         captions = captions[:, :-1]
         sorted_lens, sorted_indices = seq_lens.sort(descending=True)

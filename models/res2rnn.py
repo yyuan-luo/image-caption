@@ -6,10 +6,10 @@ from models.decoder import Decoder
 
 
 class Res2RNN(nn.Module):
-    def __init__(self, vocabulary_size, embedding_size, hidden_dim=256, num_layers=1):
+    def __init__(self, vocabulary_size, embedding_size, hidden_dim=256, num_layers=1, device=torch.device("cpu")):
         super(Res2RNN, self).__init__()
         self.encoder = Encoder(embedding_size)
-        self.decoder = Decoder(vocabulary_size, embedding_size, hidden_dim, num_layers)
+        self.decoder = Decoder(vocabulary_size, embedding_size, hidden_dim, num_layers, device)
 
     def forward(self, images, captions, seq_lengths):
         image_feature = self.encoder(images)
@@ -17,7 +17,7 @@ class Res2RNN(nn.Module):
         return pre_captions
 
 
-if __name__ == '__main__':
+def main():
     embedding_size = 256
     images = torch.randn(3, 3, 224, 224)
     captions = torch.randint(1, 10, [3, 20])
@@ -28,3 +28,7 @@ if __name__ == '__main__':
     output = model(images, captions, seq_lengths)
     print(output.view(-1, 100).shape, captions.view(-1).shape)
     print(criterion(output.view(-1, 100), captions.view(-1)))
+
+
+if __name__ == '__main__':
+    main()

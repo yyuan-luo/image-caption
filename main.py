@@ -62,7 +62,7 @@ if __name__ == '__main__':
                                                                              batch_size)
     embedding_size = 256
     vocabulary_size = dataset.vocabulary.__len__()
-    model = Res2RNN(vocabulary_size, embedding_size)
+    model = Res2RNN(vocabulary_size, embedding_size, 256, 1, device)
     model = model.to(device)
     criterion = nn.CrossEntropyLoss(ignore_index=dataset.vocabulary.stoi['[PAD]'])  # ignore <PAD>
     total_steps = math.floor(int(dataset.__len__() * 0.6) / batch_size)
